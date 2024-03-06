@@ -29,10 +29,9 @@ fn main() {
     let reader = BufReader::new(file);
     let dmi = Icon::load(reader).unwrap();
 
-    let source_image = match image::open(args.base_image) {
-        Ok(i) => i,
-        Err(err) => panic!("image open error: {}", err),
-    };
+    let base_dmi_file = File::open(args.base_image).unwrap();
+    let base_dmi_reader = BufReader::new(base_dmi_file);
+    let base_dmi = Icon::load(base_dmi_reader).unwrap();
 
     let states:Vec<_> = if args.states.is_empty() {
         dmi.states.iter().map(|x| x.name.as_str()).collect()
@@ -50,6 +49,7 @@ fn main() {
         for frame in 1..state.frames + 1 {
             for i in 0..state.dirs {
                 let dir = icon::DIR_ORDERING[i as usize];
+                let base_dmi_imagedata = base_dmi.states[0].get_image(&dir, frame).unwrap();
 
                 let data = match state.get_image(&dir, frame) {
                     Ok(d) => d,
@@ -58,7 +58,7 @@ fn main() {
                 let new_data: ImageBuffer<image::Rgba<u8>, Vec<u8>> =
                     RgbaImage::from_fn(data.width(), data.height(), |x, y| {
                         let cur_pixel: Rgba<u8> = data.get_pixel(x, y);
-                        let source_pixel: Rgba<u8> = source_image.get_pixel(x, y);
+                        let source_pixel: Rgba<u8> = base_dmi_imagedata.get_pixel(x, y);
                         let r = (source_pixel.0[0] as f32 / 255.0
                             * (cur_pixel.0[3] as f32 / 255.0)
                             * 255.0) as u8;
