@@ -2,7 +2,7 @@ use std::{fs::File, io::BufReader};
 
 use clap::Parser;
 use dmi::icon::{self, DmiVersion, Icon, IconState};
-use image::{DynamicImage, GenericImageView, ImageBuffer, ImageFormat, Rgba, RgbaImage};
+use image::{DynamicImage, GenericImageView, ImageBuffer, Rgba, RgbaImage};
 
 #[derive(Parser)]
 struct Cli {
@@ -91,11 +91,19 @@ fn main() {
     });
 
     if output_filename.exists() {
-        let mut original_icon =
+        let original_icon =
             Icon::load(BufReader::new(File::open(output_filename.clone()).unwrap())).unwrap();
-        let mut output_file = File::open(output_filename).unwrap();
-        original_icon.states.append(&mut new_states);
-        original_icon.save(&mut output_file);
+        let mut all_states: Vec<IconState> = vec![];
+        original_icon.states.iter().for_each(|s| all_states.push(s.clone()));
+        new_states.iter().for_each(|s| all_states.push(s.clone()));
+        let new_icon = Icon {
+            version: DmiVersion::default(),
+            width: dmi.width,
+            height: dmi.height,
+            states: all_states
+        };
+        let mut output_file = File::create(output_filename).unwrap();
+        new_icon.save(&mut output_file);
     } else {
         let output_icon = Icon {
             version: DmiVersion::default(),
